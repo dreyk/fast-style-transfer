@@ -47,7 +47,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         worker_device = "/job:worker/task:%d/cpu:0" % (task_index)
 
     time_begin = time.time()
-        print("Training begins @ %f" % time_begin)
+    print("Training begins @ %f" % time_begin)
     with tf.device(
             tf.train.replica_device_setter(
                 worker_device=worker_device,
