@@ -14,8 +14,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
              tv_weight, vgg_path, epochs=2, print_iterations=1000,
              batch_size=4, save_path='saver',
              learning_rate=1e-3, debug=False):
-    server = tf.train.Server(
-            cluster, job_name="worker", task_index=task_index)
     if limit >0 :
         print("Limit train set %d" % limit)
         content_targets = content_targets[0:limit]
@@ -41,6 +39,8 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             features = np.reshape(features, (-1, features.shape[3]))
             gram = np.matmul(features.T, features) / features.size
             style_features[layer] = gram
+    server = tf.train.Server(
+            cluster, job_name="worker", task_index=task_index)
     if num_gpus>0:
         worker_device = "/job:worker/task:%d/gpu:0" % (task_index)
     else:
