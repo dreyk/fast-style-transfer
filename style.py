@@ -109,6 +109,10 @@ def build_parser():
                         dest='num_gpus',
                         help='Total GPU Number',
                         metavar='NUM_GPU', default=0)
+    parser.add_argument('--limit_train', type=int,
+                        dest='limit_train',
+                        help='Limit train set by number',
+                        metavar='LIMIT_TRAIN', default=0)
 
     return parser
 
@@ -174,6 +178,7 @@ def main():
         cluster,
         options.task_index,
         options.num_gpus,
+        options.limit_train,
         content_targets,
         style_target,
         options.content_weight,

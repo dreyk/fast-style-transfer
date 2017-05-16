@@ -10,12 +10,15 @@ CONTENT_LAYER = 'relu4_2'
 DEVICES = 'CUDA_VISIBLE_DEVICES'
 
 # np arr, np arr
-def optimize(cluster,task_index,num_gpus,content_targets, style_target, content_weight, style_weight,
+def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, content_weight, style_weight,
              tv_weight, vgg_path, epochs=2, print_iterations=1000,
              batch_size=4, save_path='saver',
              learning_rate=1e-3, debug=False):
     server = tf.train.Server(
             cluster, job_name="worker", task_index=task_index)
+    if limit>0:
+        print("Limit train set %d" % limit)
+        content_targets = content_targets[0:limit]
     mod = len(content_targets) % batch_size
     if mod > 0:
         print("Train set has been trimmed slightly..")
