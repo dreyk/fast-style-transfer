@@ -16,7 +16,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
              learning_rate=1e-3, debug=False):
     server = tf.train.Server(
             cluster, job_name="worker", task_index=task_index)
-    if limit>0:
+    if limit >0 :
         print("Limit train set %d" % limit)
         content_targets = content_targets[0:limit]
     mod = len(content_targets) % batch_size
@@ -45,6 +45,9 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         worker_device = "/job:worker/task:%d/gpu:0" % (task_index)
     else:
         worker_device = "/job:worker/task:%d/cpu:0" % (task_index)
+
+    time_begin = time.time()
+        print("Training begins @ %f" % time_begin)
     with tf.device(
             tf.train.replica_device_setter(
                 worker_device=worker_device,
@@ -153,6 +156,10 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 tup = sess.run(to_get, feed_dict = test_feed_dict)
                 _style_loss,_content_loss,_tv_loss,_loss,_preds = tup
                 losses = (_style_loss, _content_loss, _tv_loss, _loss)
+                time_end = time.time()
+                print("Training ends @ %f" % time_end)
+                training_time = time_end - time_begin
+                print("Training elapsed time: %f s" % training_time)
                 return (_preds, losses, iterations, epochs)
 
 def _tensor_size(tensor):
