@@ -39,6 +39,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             features = np.reshape(features, (-1, features.shape[3]))
             gram = np.matmul(features.T, features) / features.size
             style_features[layer] = gram
+            
     server = tf.train.Server(
             cluster, job_name="worker", task_index=task_index)
     if num_gpus>0:
