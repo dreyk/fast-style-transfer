@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from utils import save_img, get_img, exists, list_files
 import tensorflow as tf
 import evaluate
+import random
 
 CONTENT_WEIGHT = 7.5e0
 STYLE_WEIGHT = 1e2
@@ -166,6 +167,7 @@ def main():
     style_target = get_img(options.style)
 
     content_targets = _get_files(options.train_path)
+    random.shuffle(content_targets)
 
     kwargs = {
         "epochs":options.epochs,
