@@ -39,7 +39,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             features = np.reshape(features, (-1, features.shape[3]))
             gram = np.matmul(features.T, features) / features.size
             style_features[layer] = gram
-            
+
     server = tf.train.Server(
             cluster, job_name="worker", task_index=task_index)
     if num_gpus>0:
@@ -56,6 +56,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 cluster=cluster)):
         global_step = tf.Variable(0, name="global_step", trainable=False)
         X_content = tf.placeholder(tf.float32, shape=batch_shape, name="X_content")
+        x_content_tensor_info = tf.saved_model.utils.build_tensor_info(X_content)
         X_pre = vgg.preprocess(X_content)
 
         # precompute content features
@@ -64,6 +65,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         content_features[CONTENT_LAYER] = content_net[CONTENT_LAYER]
 
         preds = transform.net(X_content/255.0)
+        preds_tensor_info = tf.saved_model.utils.build_tensor_info(preds)
         preds_pre = vgg.preprocess(preds)
 
         net = vgg.net(vgg_path, preds_pre)
@@ -150,6 +152,27 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             if debug:
                 print("UID: %s, batch time: %s" % (uid, delta_time))
             if step >= num_global:
+                if is_chief:
+                    builder = tf.saved_model.builder.SavedModelBuilder(save_path)
+                    signature = (
+                        tf.saved_model.signature_def_utils.build_signature_def(
+                        inputs={
+                            tf.saved_model.signature_constants.CLASSIFY_INPUTS:
+                                x_content_tensor_info
+                        },
+                        outputs={
+                            tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
+                                preds_tensor_info
+                        },
+                        method_name=tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME))
+                    builder.add_meta_graph_and_variables(
+                        sess, [tf.saved_model.tag_constants.SERVING],
+                        signature_def_map={
+                            'transform':
+                                signature
+                            })
+                    builder.save()
+
                 to_get = [style_loss, content_loss, tv_loss, loss, preds]
                 test_feed_dict = {
                    X_content:X_batch

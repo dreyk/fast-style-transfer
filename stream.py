@@ -11,6 +11,7 @@ import time
 import json
 import subprocess
 import numpy
+from PIL import Image
 
 BATCH_SIZE = 1
 DEVICE = '/gpu:0'
@@ -29,10 +30,12 @@ def main():
     height = int(info["streams"][0]["height"])
     fps = round(eval(info["streams"][0]["r_frame_rate"]))
     print("%d - %d %s" % (width,height,str(fps)))
+    logo = Image.open("logo1.png").convert('RGBA')
+    logo.load()
     command = ["ffmpeg",
                '-loglevel', "quiet",
                '-i', dev,
-                '-vf',"fps=fps=4,scale=1280:1024",
+                '-vf',"fps=fps=4,scale=1280:720",
                '-f', 'image2pipe',
                '-pix_fmt', 'rgb24',
                '-tune','zerolatency',
@@ -40,7 +43,7 @@ def main():
                #'-hwaccel_device', '1',
                '-vcodec', 'rawvideo', '-']
     width = 1280
-    height = 1024
+    height = 720
     #fps = 24
     pipe_in = subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=0, stdin=None, stderr=None)
 
@@ -63,7 +66,8 @@ def main():
                '-b','900k',
                #'-hwaccel_device','1',
                #'-fflags','nobuffer',
-               '-f','mpegts','udp://192.168.1.121:5153']
+               #'-f','mpegts','udp://192.168.1.121:5153']
+               '-f',out]
 
     pipe_out = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=None, stderr=None)
     #run --rm -it --name vide-demo --device /dev/video0:/dev/video0 -v /kubenfs:/kubenfs tensorflow/tensorflow:latest-gpu /bin/sh -c 'cd /kubenfs/vide-demo;python piper.py'
@@ -124,14 +128,17 @@ def main():
                 count += 1
 
             if read_input:
-                if total_count>200:
+                if total_count>100:
                     read_input = False
                 if last:
                     read_input = False
                 _preds = sess.run(preds, feed_dict={img_placeholder: X})
-
+                total_count += 1
                 for i in range(0, batch_shape[0]):
                     img = np.clip(_preds[i], 0, 255).astype(np.uint8)
+                    pimg = Image.fromarray(img)
+                    pimg.paste(logo,mask=logo.split()[3])
+                    img = np.asarray(pimg).astype(np.uint8)
                     pipe_out.stdin.write(img)
 
 
