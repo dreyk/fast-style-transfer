@@ -53,7 +53,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             tf.train.replica_device_setter(
                 worker_device=worker_device,
                 ps_device="/job:ps/cpu:0",
-                cluster=cluster)):
+                cluster=cluster)),tf.Session() as sess:
         global_step = tf.Variable(0, name="global_step", trainable=False)
         X_content = tf.placeholder(tf.float32, shape=batch_shape, name="X_content")
         x_content_tensor_info = tf.saved_model.utils.build_tensor_info(X_content)
@@ -103,17 +103,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
 
         init_op = tf.global_variables_initializer()
 
-        sv = tf.train.Supervisor(
-                is_chief=is_chief,
-                logdir=save_path,
-                init_op=init_op,
-                recovery_wait_secs=1,
-                global_step=global_step)
-
-        sess_config = tf.ConfigProto(
-            allow_soft_placement=True,
-            log_device_placement=False,
-            device_filters=["/job:ps", "/job:worker/task:%d" % task_index])
+        model = os.path.join(save_path,"1")
         sess = tf.Session()
         builder = tf.saved_model.builder.SavedModelBuilder(model)
         signature = (
@@ -133,6 +123,18 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 'transform':
                     signature
                 })
+
+        sv = tf.train.Supervisor(
+                is_chief=is_chief,
+                logdir=save_path,
+                init_op=init_op,
+                recovery_wait_secs=1,
+                global_step=global_step)
+
+        sess_config = tf.ConfigProto(
+            allow_soft_placement=True,
+            log_device_placement=False,
+            device_filters=["/job:ps", "/job:worker/task:%d" % task_index])
 
         sess = sv.prepare_or_wait_for_session(server.target, config=sess_config)
 
@@ -172,7 +174,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 print("UID: %s, batch time: %s" % (uid, delta_time))
             if step >= num_global:
                 if is_chief:
-                    model = os.path.join(save_path,"1")
                     builder.save()
 
                 to_get = [style_loss, content_loss, tv_loss, loss, preds]
