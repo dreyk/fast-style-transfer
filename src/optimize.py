@@ -153,7 +153,8 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 print("UID: %s, batch time: %s" % (uid, delta_time))
             if step >= num_global:
                 if is_chief:
-                    builder = tf.saved_model.builder.SavedModelBuilder(save_path)
+                    model = os.path.join(save_path,"1")
+                    builder = tf.saved_model.builder.SavedModelBuilder(model)
                     signature = (
                         tf.saved_model.signature_def_utils.build_signature_def(
                         inputs={
