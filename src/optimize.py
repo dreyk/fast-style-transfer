@@ -166,7 +166,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                                 preds_tensor_info
                         },
                         method_name=tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME))
-                    builder.add_meta_graph_and_variables(
+                    builder.add_meta_graph(
                         sess, [tf.saved_model.tag_constants.SERVING],
                         signature_def_map={
                             'transform':
