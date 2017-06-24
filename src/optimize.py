@@ -104,27 +104,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         init_op = tf.global_variables_initializer()
 
         model = os.path.join(save_path,"1")
-        sess = tf.Session()
-        builder = tf.saved_model.builder.SavedModelBuilder(model)
-        signature = (
-            tf.saved_model.signature_def_utils.build_signature_def(
-            inputs={
-                tf.saved_model.signature_constants.CLASSIFY_INPUTS:
-                    x_content_tensor_info
-            },
-            outputs={
-                tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
-                    preds_tensor_info
-            },
-            method_name=tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME))
-        builder.add_meta_graph_and_variables(
-            sess, [tf.saved_model.tag_constants.SERVING],
-            clear_devices=True,
-            signature_def_map={
-                'transform':
-                    signature
-                })
-
         sv = tf.train.Supervisor(
                 is_chief=is_chief,
                 logdir=save_path,
@@ -175,6 +154,27 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 print("UID: %s, batch time: %s" % (uid, delta_time))
             if step >= num_global:
                 if is_chief:
+                    sess.graph._unsafe_unfinalize()
+                    builder = tf.saved_model.builder.SavedModelBuilder(model)
+                    signature = (
+                        tf.saved_model.signature_def_utils.build_signature_def(
+                        inputs={
+                            tf.saved_model.signature_constants.CLASSIFY_INPUTS:
+                                x_content_tensor_info
+                        },
+                        outputs={
+                            tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
+                                preds_tensor_info
+                        },
+                        method_name=tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME))
+                    builder.add_meta_graph_and_variables(
+                        sess, [tf.saved_model.tag_constants.SERVING],
+                        clear_devices=True,
+                        signature_def_map={
+                            'transform':
+                                signature
+                            })
+                    sess.graph.finalize()
                     builder.save()
 
                 to_get = [style_loss, content_loss, tv_loss, loss, preds]
