@@ -157,16 +157,10 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                     sess.graph._unsafe_unfinalize()
                     builder = tf.saved_model.builder.SavedModelBuilder(model)
                     signature = (
-                        tf.saved_model.signature_def_utils.build_signature_def(
-                        inputs={
-                            tf.saved_model.signature_constants.CLASSIFY_INPUTS:
-                                x_content_tensor_info
-                        },
-                        outputs={
-                            tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
-                                preds_tensor_info
-                        },
-                        method_name=tf.saved_model.signature_constants.CLASSIFY_METHOD_NAME))
+                          tf.saved_model.signature_def_utils.build_signature_def(
+                              inputs={'X_content': x_content_tensor_info},
+                              outputs={'preds': preds_tensor_info},
+                              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
                     builder.add_meta_graph_and_variables(
                         sess, [tf.saved_model.tag_constants.SERVING],
                         clear_devices=True,
