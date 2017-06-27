@@ -113,8 +113,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             log_device_placement=False,
             device_filters=["/job:ps", "/job:worker/task:%d" % task_index])
 
-        sess = sv.prepare_or_wait_for_session(server.target, config=sess_config)
-
         import random
         uid = random.randint(1, 100)
         print("UID: %s" % uid)
@@ -124,27 +122,29 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         num_samples = num_examples / batch_size
         num_global =  num_samples * epochs
         print("Number of iterations %d" % num_global)
-        while not sv.should_stop():
-            curr = iterations * batch_size
-            step = curr + batch_size
-            X_batch = np.zeros(batch_shape, dtype=np.float32)
-            for j, img_p in enumerate(content_targets[curr:step]):
-               X_batch[j] = get_img(img_p, (256,256,3)).astype(np.float32)
+        with sv.managed_session(server.target, config=sess_config)
+            while not sv.should_stop():
+                curr = iterations * batch_size
+                step = curr + batch_size
+                X_batch = np.zeros(batch_shape, dtype=np.float32)
+                for j, img_p in enumerate(content_targets[curr:step]):
+                   X_batch[j] = get_img(img_p, (256,256,3)).astype(np.float32)
 
-            iterations += 1
-            if iterations == num_samples:
-                iterations = 0
-            assert X_batch.shape[0] == batch_size
+                iterations += 1
+                if iterations == num_samples:
+                    iterations = 0
+                assert X_batch.shape[0] == batch_size
 
-            feed_dict = {
-               X_content:X_batch
-            }
-            _, step = sess.run([train_step, global_step], feed_dict=feed_dict)
-            local_step += 1
-            print("Worker %d: training step %d done (global step: %d)" %
-                (task_index, local_step, step))
-            if step >= num_global:
-                sv.request_stop()
+                feed_dict = {
+                   X_content:X_batch
+                }
+                _, step = sess.run([train_step, global_step], feed_dict=feed_dict)
+                local_step += 1
+                print("Worker %d: training step %d done (global step: %d)" %
+                    (task_index, local_step, step))
+                if step >= num_global:
+                    raise tf.errors.OutOfRangeError()
+
         to_get = [style_loss, content_loss, tv_loss, loss, preds]
         test_feed_dict = {
            X_content:X_batch
