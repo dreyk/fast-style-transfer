@@ -144,7 +144,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             print("Worker %d: training step %d done (global step: %d)" %
                 (task_index, local_step, step))
             if step >= num_global:
-                sv.Stop()
+                sv.request_stop()
         to_get = [style_loss, content_loss, tv_loss, loss, preds]
         test_feed_dict = {
            X_content:X_batch

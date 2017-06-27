@@ -4,7 +4,7 @@ sys.path.insert(0, 'src')
 import transform, numpy as np, vgg, pdb, os
 
 def export(checkpoint_dir,batch_shape):
-    with tf.Session() as sess:
+    with tf.Graph().as_default(),tf.Session() as sess:
         images= tf.placeholder(tf.float32, shape=batch_shape,name='images')
         preds = transform.net(images/255.0)
         tensor_info_images = tf.saved_model.utils.build_tensor_info(images)
