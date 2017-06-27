@@ -154,6 +154,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             print("Training ends @ %f" % time_end)
             training_time = time_end - time_begin
             print("Training elapsed time: %f s" % training_time)
+            sv.request_stop()
         return (_preds, losses, iterations, epochs)
 
 def _tensor_size(tensor):
