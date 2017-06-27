@@ -122,8 +122,9 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         num_samples = num_examples / batch_size
         num_global =  num_samples * epochs
         print("Number of iterations %d" % num_global)
-        with sv.managed_session(server.target, config=sess_config)
-            while not sv.should_stop():
+        step = 0
+        with sv.managed_session(server.target, config=sess_config) as sess:
+            while step < num_global:
                 curr = iterations * batch_size
                 step = curr + batch_size
                 X_batch = np.zeros(batch_shape, dtype=np.float32)
@@ -142,8 +143,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 local_step += 1
                 print("Worker %d: training step %d done (global step: %d)" %
                     (task_index, local_step, step))
-                if step >= num_global:
-                    raise tf.errors.OutOfRangeError()
 
         to_get = [style_loss, content_loss, tv_loss, loss, preds]
         test_feed_dict = {
