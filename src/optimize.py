@@ -66,6 +66,11 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
 
         preds = transform.net(X_content/255.0)
         preds_tensor_info = tf.saved_model.utils.build_tensor_info(preds)
+        transform_signature = (
+          tf.saved_model.signature_def_utils.build_signature_def(
+              inputs={'X_content': tensor_info_images},
+              outputs={'preds': tensor_info_preds},
+              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
         preds_pre = vgg.preprocess(preds)
 
         net = vgg.net(vgg_path, preds_pre)
@@ -103,7 +108,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
 
         init_op = tf.global_variables_initializer()
 
-        model = os.path.join(save_path,"1")
         sv = tf.train.Supervisor(
                 is_chief=is_chief,
                 logdir=save_path,
@@ -155,19 +159,14 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             if step >= num_global:
                 if is_chief:
                     sess.graph._unsafe_unfinalize()
+                    model = os.path.join(save_path,"1")
                     builder = tf.saved_model.builder.SavedModelBuilder(model)
-                    signature = (
-                          tf.saved_model.signature_def_utils.build_signature_def(
-                              inputs={'X_content': x_content_tensor_info},
-                              outputs={'preds': preds_tensor_info},
-                              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
                     builder.add_meta_graph_and_variables(
                         sess, [tf.saved_model.tag_constants.SERVING],
-                        clear_devices=True,
                         signature_def_map={
                             'transform':
-                                signature
-                            })
+                                transform_signature
+                        })
                     sess.graph.finalize()
                     builder.save()
 
