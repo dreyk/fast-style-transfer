@@ -124,7 +124,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         print("Number of iterations %d" % num_global)
         step = 0
         with sv.managed_session(server.target, config=sess_config) as sess:
-            while step < num_global:
+            while step < num_global and not sv.should_stop():
                 curr = iterations * batch_size
                 step = curr + batch_size
                 X_batch = np.zeros(batch_shape, dtype=np.float32)
@@ -154,7 +154,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             print("Training ends @ %f" % time_end)
             training_time = time_end - time_begin
             print("Training elapsed time: %f s" % training_time)
-            raise tf.errors.OutOfRangeError()
         return (_preds, losses, iterations, epochs)
 
 def _tensor_size(tensor):
