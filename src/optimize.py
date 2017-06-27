@@ -124,7 +124,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         num_samples = num_examples / batch_size
         num_global =  num_samples * epochs
         print("Number of iterations %d" % num_global)
-        while not sv.Stop():
+        while not sv.should_stop():
             curr = iterations * batch_size
             step = curr + batch_size
             X_batch = np.zeros(batch_shape, dtype=np.float32)
