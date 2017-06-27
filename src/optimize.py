@@ -143,19 +143,18 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 local_step += 1
                 print("Worker %d: training step %d done (global step: %d)" %
                     (task_index, local_step, step))
-
-        to_get = [style_loss, content_loss, tv_loss, loss, preds]
-        test_feed_dict = {
-           X_content:X_batch
-        }
-        tup = sess.run(to_get, feed_dict = test_feed_dict)
-        _style_loss,_content_loss,_tv_loss,_loss,_preds = tup
-        losses = (_style_loss, _content_loss, _tv_loss, _loss)
-        time_end = time.time()
-        print("Training ends @ %f" % time_end)
-        training_time = time_end - time_begin
-        print("Training elapsed time: %f s" % training_time)
-        return (_preds, losses, iterations, epochs)
+            to_get = [style_loss, content_loss, tv_loss, loss, preds]
+            test_feed_dict = {
+               X_content:X_batch
+            }
+            tup = sess.run(to_get, feed_dict = test_feed_dict)
+            _style_loss,_content_loss,_tv_loss,_loss,_preds = tup
+            losses = (_style_loss, _content_loss, _tv_loss, _loss)
+            time_end = time.time()
+            print("Training ends @ %f" % time_end)
+            training_time = time_end - time_begin
+            print("Training elapsed time: %f s" % training_time)
+            return (_preds, losses, iterations, epochs)
 
 def _tensor_size(tensor):
     from operator import mul
