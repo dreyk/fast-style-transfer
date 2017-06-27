@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from utils import save_img, get_img, exists, list_files
 import tensorflow as tf
 import evaluate
+import export
 import random
 
 CONTENT_WEIGHT = 7.5e0
@@ -196,12 +197,8 @@ def main():
     print('Epoch %d, Iteration: %d, Loss: %s' % (epoch, i, loss))
     to_print = (style_loss, content_loss, tv_loss)
     print('style: %s, content:%s, tv: %s' % to_print)
-    if options.test and (options.task_index == 0):
-        assert options.test_dir != False
-        preds_path = '%s/%s_%s.png' % (options.test_dir,epoch,i)
-        ckpt_dir = os.path.dirname(options.checkpoint_dir)
-        evaluate.ffwd_to_img(options.test,preds_path,
-                                 options.checkpoint_dir)
+    if options.task_index == 0:
+        export.export(options.checkpoint_dir,(1,512,512,3))
     ckpt_dir = options.checkpoint_dir
     cmd_text = 'python evaluate.py --checkpoint %s ...' % ckpt_dir
     print("Training complete. For evaluation:\n    `%s`" % cmd_text)

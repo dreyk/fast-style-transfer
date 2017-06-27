@@ -56,7 +56,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 cluster=cluster)),tf.Session() as sess:
         global_step = tf.Variable(0, name="global_step", trainable=False)
         X_content = tf.placeholder(tf.float32, shape=batch_shape, name="X_content")
-        x_content_tensor_info = tf.saved_model.utils.build_tensor_info(X_content)
         X_pre = vgg.preprocess(X_content)
 
         # precompute content features
@@ -65,12 +64,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         content_features[CONTENT_LAYER] = content_net[CONTENT_LAYER]
 
         preds = transform.net(X_content/255.0)
-        preds_tensor_info = tf.saved_model.utils.build_tensor_info(preds)
-        transform_signature = (
-          tf.saved_model.signature_def_utils.build_signature_def(
-              inputs={'X_content': tensor_info_images},
-              outputs={'preds': tensor_info_preds},
-              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
         preds_pre = vgg.preprocess(preds)
 
         net = vgg.net(vgg_path, preds_pre)
@@ -131,8 +124,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         num_samples = num_examples / batch_size
         num_global =  num_samples * epochs
         print("Number of iterations %d" % num_global)
-        while True:
-            start_time = time.time()
+        while not sv.Stop():
             curr = iterations * batch_size
             step = curr + batch_size
             X_batch = np.zeros(batch_shape, dtype=np.float32)
@@ -151,37 +143,20 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
             local_step += 1
             print("Worker %d: training step %d done (global step: %d)" %
                 (task_index, local_step, step))
-
-            end_time = time.time()
-            delta_time = end_time - start_time
-            if debug:
-                print("UID: %s, batch time: %s" % (uid, delta_time))
             if step >= num_global:
-                if is_chief:
-                    sess.graph._unsafe_unfinalize()
-                    model = os.path.join(save_path,"1")
-                    builder = tf.saved_model.builder.SavedModelBuilder(model)
-                    builder.add_meta_graph_and_variables(
-                        sess, [tf.saved_model.tag_constants.SERVING],
-                        signature_def_map={
-                            'transform':
-                                transform_signature
-                        })
-                    sess.graph.finalize()
-                    builder.save()
-
-                to_get = [style_loss, content_loss, tv_loss, loss, preds]
-                test_feed_dict = {
-                   X_content:X_batch
-                }
-                tup = sess.run(to_get, feed_dict = test_feed_dict)
-                _style_loss,_content_loss,_tv_loss,_loss,_preds = tup
-                losses = (_style_loss, _content_loss, _tv_loss, _loss)
-                time_end = time.time()
-                print("Training ends @ %f" % time_end)
-                training_time = time_end - time_begin
-                print("Training elapsed time: %f s" % training_time)
-                return (_preds, losses, iterations, epochs)
+                sv.Stop()
+        to_get = [style_loss, content_loss, tv_loss, loss, preds]
+        test_feed_dict = {
+           X_content:X_batch
+        }
+        tup = sess.run(to_get, feed_dict = test_feed_dict)
+        _style_loss,_content_loss,_tv_loss,_loss,_preds = tup
+        losses = (_style_loss, _content_loss, _tv_loss, _loss)
+        time_end = time.time()
+        print("Training ends @ %f" % time_end)
+        training_time = time_end - time_begin
+        print("Training elapsed time: %f s" % training_time)
+        return (_preds, losses, iterations, epochs)
 
 def _tensor_size(tensor):
     from operator import mul
