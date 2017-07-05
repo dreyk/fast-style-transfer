@@ -25,7 +25,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
     print("Number of iterations %d" % num_global)
     t_img = get_img(test_image,(256,256,3)).astype(np.float32)
     Test = np.zeros((batch_size,256,256,3), dtype=np.float32)
-    for i in range(0, batch_size)
+    for i in range(0, batch_size):
        Test[i] = t_img
 
     mod = len(content_targets) % batch_size
