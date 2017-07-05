@@ -156,7 +156,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                    X_content:X_batch
                 }
                 _, step = sess.run([train_step, global_step], feed_dict=feed_dict)
-                if is_chief and step % 200 == 0:
+                if is_chief and local_step % 200 == 0:
                     test_feed_dict = {
                        X_content:Test,
                     }
