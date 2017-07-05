@@ -18,7 +18,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         print("Limit train set %d" % limit)
         content_targets = content_targets[0:limit]
     t_img = get_img(test_image)
-    t_img_shape = get_img(t_img).shape
+    t_img_shape = t_img.shape
     t_img_batch_shape = (1,) + t_img_shape
     Test = np.zeros(t_img_batch_shape, dtype=np.float32)
     Test[0] = t_img
