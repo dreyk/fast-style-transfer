@@ -175,7 +175,8 @@ def main():
         "print_iterations":options.checkpoint_iterations,
         "batch_size":options.batch_size,
         "save_path":options.checkpoint_dir,
-        "learning_rate":options.learning_rate
+        "learning_rate":options.learning_rate,
+        "test_image":options.test
     }
 
     args = [

@@ -13,10 +13,16 @@ DEVICES = 'CUDA_VISIBLE_DEVICES'
 def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, content_weight, style_weight,
              tv_weight, vgg_path, epochs=2, print_iterations=1000,
              batch_size=4, save_path='saver',
-             learning_rate=1e-3, debug=False):
+             learning_rate=1e-3,test_image="",debug=False):
     if limit >0 :
         print("Limit train set %d" % limit)
         content_targets = content_targets[0:limit]
+    t_img = get_img(test_image)
+    t_img_shape = get_img(t_img).shape
+    t_img_batch_shape = (1,) + t_img_shape
+    Test = np.zeros(t_img_batch_shape, dtype=np.float32)
+    Test[0] = t_img
+
     mod = len(content_targets) % batch_size
     if mod > 0:
         print("Train set has been trimmed slightly..")
@@ -73,7 +79,10 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         content_loss = content_weight * (2 * tf.nn.l2_loss(
             net[CONTENT_LAYER] - content_features[CONTENT_LAYER]) / content_size
         )
-
+        # test summary
+        t_img_placeholder = tf.placeholder(tf.float32, shape=t_img_batch_shape,
+                                         name='t_img_placeholder')
+        t_img_preds = transform.net(t_img_placeholder)
         style_losses = []
         for style_layer in STYLE_LAYERS:
             layer = net[style_layer]
@@ -94,10 +103,20 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         x_tv = tf.nn.l2_loss(preds[:,:,1:,:] - preds[:,:,:batch_shape[2]-1,:])
         tv_loss = tv_weight*2*(x_tv/tv_x_size + y_tv/tv_y_size)/batch_size
 
+
         loss = content_loss + style_loss + tv_loss
+
+        tf.summary.scalar('loss', los)
+        tf.summary.scalar('tv_loss', tv_loss)
+        tf.summary.scalar('style_loss', style_loss)
+        tf.summary.scalar('content_loss', content_loss)
+        result_t_img = tf.reshape(t_img_preds,(-1,t_img_shape[0],t_img_shape[1],t_img_shape[2]))
+        tf.summary.image('result', result_t_img)
 
         # overall loss
         train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss,global_step=global_step)
+
+        all_summary = tf.summary.merge_all()
 
         init_op = tf.global_variables_initializer()
 
@@ -106,6 +125,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 logdir=save_path,
                 init_op=init_op,
                 recovery_wait_secs=1,
+                summary_op=None,
                 global_step=global_step)
 
         sess_config = tf.ConfigProto(
@@ -140,6 +160,12 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                    X_content:X_batch
                 }
                 _, step = sess.run([train_step, global_step], feed_dict=feed_dict)
+                if is_chief and step % 10 == 0:
+                    test_feed_dict = {
+                       X_content:X_batch,
+                       t_img_placeholder: Test
+                    }
+                    sv.summary_computed(sess, sess.run(all_summary, feed_dict = test_feed_dict))
                 local_step += 1
                 print("Worker %d: training step %d done (global step: %d)" %
                     (task_index, local_step, step))
