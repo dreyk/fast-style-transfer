@@ -106,7 +106,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
 
         loss = content_loss + style_loss + tv_loss
 
-        tf.summary.scalar('loss', los)
+        tf.summary.scalar('loss', loss)
         tf.summary.scalar('tv_loss', tv_loss)
         tf.summary.scalar('style_loss', style_loss)
         tf.summary.scalar('content_loss', content_loss)
