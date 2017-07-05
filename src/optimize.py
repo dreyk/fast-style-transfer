@@ -161,6 +161,9 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 }
                 _, step = sess.run([train_step, global_step], feed_dict=feed_dict)
                 if is_chief and step % 10 == 0:
+                    t_img_placeholder = tf.placeholder(tf.float32, shape=t_img_batch_shape,
+                                                     name='t_img_placeholder')
+                    t_img_preds = transform.net(t_img_placeholder)
                     test_feed_dict = {
                        X_content:X_batch,
                        t_img_placeholder: Test
