@@ -23,11 +23,10 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
     num_samples = num_examples / batch_size
     num_global =  num_samples * epochs
     print("Number of iterations %d" % num_global)
-    t_img = get_img(test_image)
-    t_img_shape = t_img.shape
-    t_img_batch_shape = (1,) + t_img_shape
-    Test = np.zeros(t_img_batch_shape, dtype=np.float32)
-    Test[0] = t_img
+    t_img = get_img(test_image,(256,256,3)).astype(np.float32)
+    Test = np.zeros((batch_size,256,256,3), dtype=np.float32)
+    for i in range(0, batch_size)
+       Test[i] = t_img
 
     mod = len(content_targets) % batch_size
     if mod > 0:
@@ -85,10 +84,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         content_loss = content_weight * (2 * tf.nn.l2_loss(
             net[CONTENT_LAYER] - content_features[CONTENT_LAYER]) / content_size
         )
-        # test summary
-        t_img_placeholder = tf.placeholder(tf.float32, shape=t_img_batch_shape,
-                                         name='t_img_placeholder')
-        t_img_preds = transform.net(t_img_placeholder)
+
         style_losses = []
         for style_layer in STYLE_LAYERS:
             layer = net[style_layer]
@@ -116,8 +112,8 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         tf.summary.scalar('tv_loss', tv_loss)
         tf.summary.scalar('style_loss', style_loss)
         tf.summary.scalar('content_loss', content_loss)
-        #result_t_img = tf.reshape(t_img_preds,(-1,t_img_shape[0],t_img_shape[1],t_img_shape[2]))
-        tf.summary.image('result', t_img_preds)
+        result = preds*255.0
+        tf.summary.image('result', result,max_outputs=1)
 
         # overall loss
         train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss,global_step=global_step)
@@ -162,8 +158,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                 _, step = sess.run([train_step, global_step], feed_dict=feed_dict)
                 if is_chief and step % 200 == 0:
                     test_feed_dict = {
-                       X_content:X_batch,
-                       t_img_placeholder: Test
+                       X_content:Test,
                     }
                     sv.summary_computed(sess, sess.run(all_summary, feed_dict = test_feed_dict))
                 local_step += 1
