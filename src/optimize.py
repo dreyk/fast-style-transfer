@@ -17,6 +17,12 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
     if limit >0 :
         print("Limit train set %d" % limit)
         content_targets = content_targets[0:limit]
+    local_step = 0
+    num_examples = len(content_targets)
+    iterations = 0
+    num_samples = num_examples / batch_size
+    num_global =  num_samples * epochs
+    print("Number of iterations %d" % num_global)
     t_img = get_img(test_image)
     t_img_shape = t_img.shape
     t_img_batch_shape = (1,) + t_img_shape
@@ -136,12 +142,6 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         import random
         uid = random.randint(1, 100)
         print("UID: %s" % uid)
-        local_step = 0
-        num_examples = len(content_targets)
-        iterations = 0
-        num_samples = num_examples / batch_size
-        num_global =  num_samples * epochs
-        print("Number of iterations %d" % num_global)
         step = 0
         with sv.managed_session(server.target, config=sess_config) as sess:
             while step < num_global and not sv.should_stop():
@@ -160,10 +160,7 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
                    X_content:X_batch
                 }
                 _, step = sess.run([train_step, global_step], feed_dict=feed_dict)
-                if is_chief and step % 10 == 0:
-                    t_img_placeholder = tf.placeholder(tf.float32, shape=t_img_batch_shape,
-                                                     name='t_img_placeholder')
-                    t_img_preds = transform.net(t_img_placeholder)
+                if is_chief and step % 200 == 0:
                     test_feed_dict = {
                        X_content:X_batch,
                        t_img_placeholder: Test
