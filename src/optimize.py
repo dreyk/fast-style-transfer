@@ -110,8 +110,8 @@ def optimize(cluster,task_index,num_gpus,limit,content_targets, style_target, co
         tf.summary.scalar('tv_loss', tv_loss)
         tf.summary.scalar('style_loss', style_loss)
         tf.summary.scalar('content_loss', content_loss)
-        result_t_img = tf.reshape(t_img_preds,(-1,t_img_shape[0],t_img_shape[1],t_img_shape[2]))
-        tf.summary.image('result', result_t_img)
+        #result_t_img = tf.reshape(t_img_preds,(-1,t_img_shape[0],t_img_shape[1],t_img_shape[2]))
+        tf.summary.image('result', t_img_preds)
 
         # overall loss
         train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss,global_step=global_step)
