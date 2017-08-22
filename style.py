@@ -120,13 +120,19 @@ def build_parser():
 
 def check_opts(opts):
     if not os.path.exists(opts.checkpoint_dir):
-        os.makedirs(opts.checkpoint_dir)
+        try:
+            os.makedirs(opts.checkpoint_dir)
+        except ValueError:
+            print("Oops!  Already exeists..")
     exists(opts.style, "style path not found!")
     exists(opts.train_path, "train path not found!")
     if opts.test or opts.test_dir:
         exists(opts.test, "test img not found!")
         if not os.path.exists(opts.test_dir):
-            os.makedirs(opts.test_dir)
+            try:
+                os.makedirs(opts.test_dir)
+            except ValueError:
+                print("Oops!  Already exeists..")
     exists(opts.vgg_path, "vgg network data not found!")
     assert opts.epochs > 0
     assert opts.batch_size > 0
